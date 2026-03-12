@@ -639,13 +639,25 @@ function updateSpecificSearch() {
         if (codeCount > 0) {
             grandTotalPesos += codeTotalPesos;
             grandTotalCantidades += codeTotalCantidades;
+            
+            // Intentar obtener el nombre (Columna N) de la primera fila que coincida
+            const firstMatch = data.find(row => {
+                const codigoClean = String(row[colCodigo]).toUpperCase().replace(/\s/g, '');
+                return codigoClean === selClean || codigoClean.includes(selClean);
+            });
+            
+            // Buscar columna N por nombre o letra
+            const colNombre = Object.keys(data[0]).find(k => k.includes("Nombre Act. Descto") || k.startsWith("N -")) || "";
+            const productName = firstMatch && colNombre ? firstMatch[colNombre] : "";
+
             individualResultsHtml += `
                 <div class="sum-item" style="margin-bottom: 8px; flex-direction: column; align-items: flex-start; gap: 4px;">
                     <div style="display: flex; justify-content: space-between; width: 100%; align-items: center;">
                         <span class="code-key">${sel}</span>
-                        <span class="sum-value" style="color: var(--accent);">$ ${codeTotalPesos.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                        <span class="sum-value" style="color: var(--accent); font-weight: bold;">$ ${codeTotalPesos.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.8rem; color: var(--text-dim);">
+                    ${productName ? `<div style="font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-top: -2px;">${productName}</div>` : ''}
+                    <div style="display: flex; justify-content: space-between; width: 100%; font-size: 0.8rem; color: var(--text-dim); margin-top: 2px;">
                         <span>Registros: ${codeCount}</span>
                         <span style="color: #fbbf24; font-weight: bold;">Cant: ${codeTotalCantidades.toLocaleString()} ATOs</span>
                     </div>
