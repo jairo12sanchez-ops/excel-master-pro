@@ -187,12 +187,12 @@ function processCostsFile(file) {
 
                 const cIdx = row.findIndex(cell => {
                     const s = String(cell || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return s === 'codigo' || s.includes('referencia') || s.includes('ref') || s.includes('prod') || s === 'item' || s === 'articulo';
+                    return s.includes('codigo') || s.includes('referencia') || s.includes('ref') || s.includes('prod') || s.includes('item') || s.includes('articulo');
                 });
 
                 const vIdx = row.findIndex(cell => {
                     const s = String(cell || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return s.includes('costo') || s.includes('precio') || s.includes('valor') || s.includes('unitario') || s.includes('$');
+                    return s.includes('costo') || s.includes('precio') || s.includes('valor') || s.includes('unitario') || s.includes('$') || s.includes('vlr');
                 });
 
                 if (cIdx !== -1 && vIdx !== -1) {
