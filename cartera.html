@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Master Pro | Módulo de Cartera</title>
+    <meta name="description"
+        content="Analiza y gestiona tu cartera de clientes: vencimientos, saldos, días de mora y más desde un archivo Excel.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="cartera.css">
+    <!-- SheetJS para manejar Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- ======================== HEADER ======================== -->
+        <header>
+            <div class="header-left">
+                <div class="logo-section">
+                    <div class="logo-icon">📊</div>
+                    <h1>Excel<span>Master</span>Pro</h1>
+                </div>
+            </div>
+
+            <!-- NAVEGACIÓN POR MÓDULOS -->
+            <nav class="module-nav">
+                <a href="index.html" class="module-tab" id="tab-analisis">
+                    <span>📊</span> Analizador
+                </a>
+                <a href="cartera.html" class="module-tab active" id="tab-cartera">
+                    <span>💼</span> Cartera
+                </a>
+            </nav>
+
+            <div class="header-right">
+                <div id="file-badge" class="file-badge hidden">
+                    <span class="file-badge-dot"></span>
+                    <span id="file-name-display">Sin archivo</span>
+                </div>
+                <div id="sheet-selector-container" class="hidden">
+                    <select id="sheet-select" class="sheet-select"></select>
+                </div>
+                <label for="cartera-input" class="btn-primary" id="upload-btn-label">
+                    <span>📂</span> Subir Excel de Cartera
+                </label>
+                <input type="file" id="cartera-input" accept=".xlsx, .xls, .csv" hidden>
+                <button id="export-btn" class="btn-secondary" disabled>
+                    <span>💾</span> Exportar Reporte
+                </button>
+            </div>
+        </header>
+
+        <!-- ======================== MAIN ======================== -->
+        <main>
+            <!-- -------- SIDEBAR -------- -->
+            <aside class="sidebar" id="sidebar">
+                <!-- Resumen general -->
+                <div class="sidebar-card">
+                    <h3>📊 Resumen General</h3>
+                    <div class="kpi-grid">
+                        <div class="kpi-item accent-blue">
+                            <span class="kpi-label">Total Clientes</span>
+                            <span id="kpi-clientes" class="kpi-value">0</span>
+                        </div>
+                        <div class="kpi-item accent-green">
+                            <span class="kpi-label">Saldo Total</span>
+                            <span id="kpi-saldo" class="kpi-value">$ 0</span>
+                        </div>
+                        <div class="kpi-item accent-red">
+                            <span class="kpi-label">En Mora</span>
+                            <span id="kpi-mora" class="kpi-value">0</span>
+                        </div>
+                        <div class="kpi-item accent-orange">
+                            <span class="kpi-label">Al Día</span>
+                            <span id="kpi-aldia" class="kpi-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- BÚSQUEDA POR CÓDIGO DE CLIENTE -->
+                <div class="sidebar-card client-search-card">
+                    <h3>🔎 Buscar por Código de Cliente</h3>
+
+                    <div class="mapper-item" style="margin-bottom: 0.65rem;">
+                        <label>Columna de búsqueda:</label>
+                        <select id="col-busqueda">
+                            <option value="__col_a__">Columna A (primera columna)</option>
+                        </select>
+                    </div>
+
+                    <div class="client-search-box">
+                        <input type="text" id="client-code-input" placeholder="Escribe el código del cliente..."
+                            list="client-codes-datalist" autocomplete="off">
+                        <datalist id="client-codes-datalist"></datalist>
+                        <button id="client-search-btn" class="btn-search-client" title="Buscar">
+                            <span>🔍</span>
+                        </button>
+                    </div>
+                    <button id="client-clear-btn" class="btn-clear hidden">✕ Limpiar búsqueda</button>
+                </div>
+
+                <!-- Filtros generales -->
+                <div class="sidebar-card">
+                    <h3>⚙️ Filtros Generales</h3>
+                    <div class="filter-item">
+                        <label>Estado de mora:</label>
+                        <select id="filter-mora">
+                            <option value="todos">Todos</option>
+                            <option value="mora">En Mora</option>
+                            <option value="aldia">Al Día</option>
+                        </select>
+                    </div>
+                    <div class="filter-item">
+                        <label>Buscar nombre:</label>
+                        <input type="text" id="filter-cliente" placeholder="Nombre del cliente...">
+                    </div>
+                    <div class="filter-item">
+                        <label>Rango de saldo:</label>
+                        <div class="range-inputs">
+                            <input type="number" id="filter-min" placeholder="Mín">
+                            <span>—</span>
+                            <input type="number" id="filter-max" placeholder="Máx">
+                        </div>
+                    </div>
+                    <button id="filter-btn" class="btn-apply">
+                        <span>🔎</span> Aplicar Filtros
+                    </button>
+                    <button id="clear-filter-btn" class="btn-clear">Limpiar filtros</button>
+                </div>
+
+                <!-- Totales por mora -->
+                <div class="sidebar-card">
+                    <h3>📈 Distribución por Mora</h3>
+                    <div id="aging-container" class="aging-list">
+                        <p class="empty-msg">Sube un archivo para ver el análisis</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- -------- CONTENT AREA -------- -->
+            <section class="content-area">
+                <!-- Welcome screen -->
+                <div id="welcome-screen" class="welcome-screen">
+                    <div class="welcome-hero">
+                        <div class="welcome-icon">💼</div>
+                        <h2>Módulo de <span>Cartera</span></h2>
+                        <p>Sube tu archivo Excel con la información de cartera de clientes para comenzar el análisis de
+                            saldos, vencimientos y mora.</p>
+                        <div class="drop-zone" id="drop-zone">
+                            <div class="drop-icon">📄</div>
+                            <span class="drop-title">Arrastra tu Excel aquí</span>
+                            <span class="drop-sub">o haz clic en "Subir Excel de Cartera"</span>
+                            <div class="drop-formats">
+                                <span>.xlsx</span><span>.xls</span><span>.csv</span>
+                            </div>
+                        </div>
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">📊</div>
+                                <h4>Análisis de Mora</h4>
+                                <p>Clasifica automáticamente los clientes según sus días de mora</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">💰</div>
+                                <h4>Saldos Totales</h4>
+                                <p>Calcula el saldo total de cartera y lo segmenta por estado</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🔍</div>
+                                <h4>Filtros Avanzados</h4>
+                                <p>Filtra por cliente, estado de mora y rangos de saldo</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">💾</div>
+                                <h4>Exportar Reporte</h4>
+                                <p>Descarga el reporte filtrado como archivo Excel</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== PANEL RESULTADO POR CLIENTE ===== -->
+                <div id="client-result-panel" class="hidden">
+                    <div class="client-result-header">
+                        <div class="client-result-info">
+                            <div class="client-avatar" id="client-avatar">?</div>
+                            <div>
+                                <h2 id="client-result-name">Cliente</h2>
+                                <span id="client-result-code" class="client-code-badge">—</span>
+                            </div>
+                        </div>
+                        <button id="close-client-panel" class="btn-close-panel">✕ Ver todos</button>
+                    </div>
+
+                    <div class="client-kpis">
+                        <div class="client-kpi-card ck-blue">
+                            <span class="ck-label">Facturas / Registros</span>
+                            <span id="ck-registros" class="ck-value">0</span>
+                        </div>
+                        <div class="client-kpi-card ck-red">
+                            <span class="ck-label">Deuda Total</span>
+                            <span id="ck-deuda" class="ck-value">$ 0</span>
+                        </div>
+                        <div class="client-kpi-card ck-orange">
+                            <span class="ck-label">Días Mora Máx.</span>
+                            <span id="ck-dias" class="ck-value">0</span>
+                        </div>
+                        <div class="client-kpi-card ck-green">
+                            <span class="ck-label">Estado General</span>
+                            <span id="ck-estado" class="ck-value">—</span>
+                        </div>
+                    </div>
+
+                    <div class="client-table-section">
+                        <div class="table-header-bar">
+                            <h3>📋 Detalle de Cartera del Cliente</h3>
+                            <span id="client-table-count" class="table-count">0 registros</span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead id="client-table-head"></thead>
+                                <tbody id="client-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard after loading -->
+                <div id="dashboard" class="hidden">
+                    <!-- Chart row -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <h3>📊 Distribución de Cartera por Estado</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-estado"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3>💰 Top 10 Clientes por Saldo</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="chart-top10"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="table-section">
+                        <div class="table-header-bar">
+                            <h3 id="table-title">📋 Detalle de Cartera</h3>
+                            <span id="table-count" class="table-count">0 registros</span>
+                        </div>
+                        <div class="table-container" id="table-container">
+                            <table id="data-table">
+                                <thead id="table-head"></thead>
+                                <tbody id="table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="cartera.js"></script>
+</body>
+
+</html>

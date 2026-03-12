@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Master Pro | Analizador de Datos</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- SheetJS para manejar Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon">📊</div>
+                <h1>Excel<span>Master</span>Pro</h1>
+            </div>
+
+            <!-- NAVEGACIÓN POR MÓDULOS -->
+            <nav class="module-nav">
+                <a href="index.html" class="module-tab active" id="tab-analisis">
+                    <span>📊</span> Analizador
+                </a>
+                <a href="cartera.html" class="module-tab" id="tab-cartera">
+                    <span>💼</span> Cartera
+                </a>
+            </nav>
+
+            <div class="actions">
+                <div id="sheet-selector-container" class="hidden">
+                    <select id="sheet-select" class="sheet-select"></select>
+                </div>
+                <label for="costs-input" class="btn-secondary">
+                    <span>💰</span> Cargar Costos
+                </label>
+                <input type="file" id="costs-input" accept=".xlsx, .xls, .csv" hidden>
+                <label for="excel-input" class="btn-primary">
+                    <span>📂</span> Subir Archivo
+                </label>
+                <input type="file" id="excel-input" accept=".xlsx, .xls, .csv" hidden>
+                <button id="export-btn" class="btn-secondary" disabled><span>💾</span> Exportar</button>
+            </div>
+        </header>
+
+        <main>
+            <aside class="sidebar">
+                <div class="stats-card">
+                    <h3>Resumen de Datos</h3>
+                    <div id="quick-stats" class="stats-grid">
+                        <div class="stat-item">
+                            <span class="stat-label">Filas</span>
+                            <span id="stat-rows" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Columnas</span>
+                            <span id="stat-cols" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Con Costo</span>
+                            <span id="stat-costs" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <button id="validate-btn" class="btn-secondary"
+                        style="width:100%; margin-top:1rem; font-size:0.8rem; justify-content:center;">
+                        <span>🔍</span> Validar Presupuesto
+                    </button>
+                    <button id="config-btn" class="btn-secondary"
+                        style="width:100%; margin-top:0.5rem; font-size:0.8rem; justify-content:center;">
+                        <span>⚙️</span> Configurar Columnas
+                    </button>
+
+                    <div id="column-config-panel" class="column-selectors hidden"
+                        style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                        <div class="selector-item">
+                            <label>Col. Código:</label>
+                            <select id="select-col-codigo"></select>
+                        </div>
+                        <div class="selector-item">
+                            <label>Col. Valores ($):</label>
+                            <select id="select-col-total"></select>
+                        </div>
+                        <div class="selector-item">
+                            <label>Col. Cant. (ATOs):</label>
+                            <select id="select-col-cantidad"></select>
+                        </div>
+                        <div class="selector-item">
+                            <label>Col. Costo (Ref):</label>
+                            <select id="select-col-costo"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="calculations-panel">
+                    <h3>Buscador por Código</h3>
+                    <div class="search-box">
+                        <input type="text" id="code-search-input" placeholder="Escriba y presione Enter o elija"
+                            list="codes-datalist">
+                        <datalist id="codes-datalist"></datalist>
+                    </div>
+                    <div id="selected-codes-tags" class="tags-container"></div>
+                    <div id="search-result" class="search-result-container">
+                        <p class="empty-msg">Seleccione códigos para sumar</p>
+                    </div>
+                </div>
+
+                <div class="calculations-panel">
+                    <h3>Totales Seleccionados</h3>
+                    <div id="selected-totals-container" class="sums-list">
+                        <p class="empty-msg">Filtre códigos para ver el total aquí</p>
+                    </div>
+                </div>
+
+                <div class="grand-total-card">
+                    <span class="grand-label">TOTAL GENERAL</span>
+                    <span id="grand-total-value" class="grand-value">$ 0</span>
+                </div>
+            </aside>
+
+            <section class="content-area">
+                <div id="welcome-screen" class="welcome-screen">
+                    <div class="welcome-hero">
+                        <h2>¡Bienvenido!</h2>
+                        <p>Arrastra tu archivo Excel aquí o usa el botón de arriba para comenzar a analizar tus datos
+                            con precisión.</p>
+                        <div class="drop-zone" id="drop-zone">
+                            <div class="drop-icon">📄</div>
+                            <span>Soltar archivo aquí</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="table-container" class="table-container hidden">
+                    <table id="data-table">
+                        <thead id="table-head"></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <!-- Modal de Historial de Costos -->
+    <div id="history-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Historial de Costos: <span id="history-product-code">-</span></h3>
+                <button id="close-modal" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Costo</th>
+                            <th>Archivo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
