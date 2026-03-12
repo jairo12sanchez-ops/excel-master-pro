@@ -178,12 +178,12 @@ function processCostsFile(file) {
 
                 const cIdx = row.findIndex(cell => {
                     const s = String(cell || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return s === 'codigo' || s.includes('referencia') || (s.includes('cod') && s.includes('prod'));
+                    return s === 'codigo' || s.includes('referencia') || s.includes('ref') || s.includes('prod') || s === 'item' || s === 'articulo';
                 });
 
                 const vIdx = row.findIndex(cell => {
                     const s = String(cell || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return s.includes('costo') || s.includes('precio') || s.includes('valor');
+                    return s.includes('costo') || s.includes('precio') || s.includes('valor') || s.includes('unitario') || s.includes('$');
                 });
 
                 if (cIdx !== -1 && vIdx !== -1) {
@@ -195,8 +195,21 @@ function processCostsFile(file) {
             }
 
             if (headIdx === -1) {
-                // Si no encontramos por palabras clave, probamos con la primera fila que tenga datos
-                alert("❌ No logré identificar las columnas 'codigo' y 'costo'.\n\nPor favor, asegúrate de que el archivo tenga esos nombres en la cabecera.");
+                // FALLBACK: Si no encontramos por palabras clave, buscamos la primera fila útil
+                for (let i = 0; i < Math.min(matrix.length, 20); i++) {
+                    const row = matrix[i];
+                    if (row && row.length >= 2) {
+                         // Asumimos que la columna 0 es código y la que tenga números es costo
+                         headIdx = i;
+                         codeColIdx = 0; 
+                         costColIdx = row.findIndex((cell, idx) => idx > 0 && !isNaN(cleanNumber(cell)) && cleanNumber(cell) > 0);
+                         if (costColIdx !== -1) break;
+                    }
+                }
+            }
+
+            if (headIdx === -1 || codeColIdx === -1 || costColIdx === -1) {
+                alert("❌ No logré identificar las columnas del presupuesto.\n\nPor favor, asegúrate de que el archivo tenga títulos claros como 'Codigo' y 'Costo'.");
                 return;
             }
 
