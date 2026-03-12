@@ -766,3 +766,17 @@ exportBtn.addEventListener('click', () => {
         alert("Error al exportar el archivo. Por favor intente de nuevo.");
     }
 });
+
+// Lógica del botón Sincronizar
+const syncBtn = document.getElementById('sync-btn');
+if (syncBtn) {
+    syncBtn.addEventListener('click', () => {
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (isLocal) {
+            alert("🚀 ¡Listo para sincronizar!\n\n1. Asegúrate de haber guardado tus cambios en el Excel.\n2. Ejecuta el archivo 'subir_cambios.bat' en tu carpeta.\n\nEsto subirá los datos a la web de Railway automáticamente.");
+        } else {
+            alert("☁️ Estás en la versión de la nube.\n\nPara subir nuevos datos, debes hacerlo desde tu versión LOCAL en WampServer.");
+        }
+    });
+}
