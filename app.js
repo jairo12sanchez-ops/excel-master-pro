@@ -33,8 +33,14 @@ async function loadDefaultCosts() {
         if (response.ok) {
             const blob = await response.blob();
             const file = new File([blob], "presupuesto_maestro.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            
             console.log("Cargando presupuesto maestro detectado en el servidor...");
+            
+            // 1. Cargarlo como base de datos de costos (Diccionario)
             processCostsFile(file);
+            
+            // 2. Cargarlo como archivo principal para mostrar en la tabla y habilitar el selector de hojas
+            processFile(file);
         }
     } catch (error) {
         console.log("No se encontró presupuesto maestro inicial en el servidor.");
