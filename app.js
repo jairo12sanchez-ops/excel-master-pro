@@ -25,6 +25,23 @@ const statCosts = document.getElementById('stat-costs');
 // Product Costs Logic
 let productCosts = JSON.parse(localStorage.getItem('productCosts') || '{}');
 let productCostsHistory = JSON.parse(localStorage.getItem('productCostsHistory') || '{}');
+
+// Nuevo: Intentar cargar presupuesto maestro desde el servidor
+async function loadDefaultCosts() {
+    try {
+        const response = await fetch('presupuesto_maestro.xlsx');
+        if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], "presupuesto_maestro.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+            console.log("Cargando presupuesto maestro detectado en el servidor...");
+            processCostsFile(file);
+        }
+    } catch (error) {
+        console.log("No se encontró presupuesto maestro inicial en el servidor.");
+    }
+}
+
+loadDefaultCosts();
 updateCostsStat();
 
 const costsInput = document.getElementById('costs-input');
