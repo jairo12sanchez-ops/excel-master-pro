@@ -157,7 +157,13 @@ function processCostsFile(file) {
                 return;
             }
 
-            const firstSheetName = tempWb.SheetNames[0];
+            console.log("Hojas disponibles:", tempWb.SheetNames);
+            
+            // Priorizar hoja llamada 'informe' o similar, si no, usar la primera
+            const informeIdx = tempWb.SheetNames.findIndex(n => n.toUpperCase().includes('INFORME'));
+            const firstSheetName = informeIdx !== -1 ? tempWb.SheetNames[informeIdx] : tempWb.SheetNames[0];
+            
+            console.log("Procesando hoja:", firstSheetName);
             const firstSheet = tempWb.Sheets[firstSheetName];
 
             const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
