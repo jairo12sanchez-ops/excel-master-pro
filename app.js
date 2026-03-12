@@ -159,20 +159,23 @@ function processCostsFile(file) {
 
             console.log("Hojas disponibles:", tempWb.SheetNames);
             
-            // Priorizar hoja llamada 'VALIDACION' o 'PRESUPUESTO'
-            const targetIdx = tempWb.SheetNames.findIndex(n => {
-                const name = n.toUpperCase();
-                return name.includes('VALIDACION') || name.includes('PRESUPUESTO') || name.includes('INFORME');
-            });
-            const firstSheetName = targetIdx !== -1 ? tempWb.SheetNames[targetIdx] : tempWb.SheetNames[0];
+            // Prioridad estricta para encontrar la hoja de validación primero
+            const prioritySheets = ['VALIDACION', 'PRESUPUESTO', 'INFORME', 'MAESTRO', 'BASE'];
+            let firstSheetName = tempWb.SheetNames[0];
+            for (const p of prioritySheets) {
+                const found = tempWb.SheetNames.find(n => n.toUpperCase().includes(p));
+                if (found) {
+                    firstSheetName = found;
+                    break;
+                }
+            }
             
-            console.log("Cargando costos maestros desde la hoja:", firstSheetName);
+            console.log("Cargando costos desde hoja:", firstSheetName);
             const firstSheet = tempWb.Sheets[firstSheetName];
-
             const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
             if (!matrix || matrix.length === 0) {
-                alert("⚠️ El archivo está vacío.");
+                alert("⚠️ El archivo o la hoja seleccionada están vacíos.");
                 return;
             }
 
@@ -180,14 +183,14 @@ function processCostsFile(file) {
             let codeColIdx = -1;
             let costColIdx = -1;
 
-            // Buscamos la fila que contiene las palabras clave
-            for (let i = 0; i < Math.min(matrix.length, 100); i++) {
+            // Búsqueda exhaustiva de cabeceras (primeras 200 filas)
+            for (let i = 0; i < Math.min(matrix.length, 200); i++) {
                 const row = matrix[i];
                 if (!row) continue;
 
                 const cIdx = row.findIndex(cell => {
                     const s = String(cell || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return s.includes('codigo') || s.includes('referencia') || s.includes('ref') || s.includes('prod') || s.includes('item') || s.includes('articulo');
+                    return s.includes('codigo') || s.includes('referencia') || s.includes('ref') || s.includes('prod') || s.includes('articulo') || s.includes('item');
                 });
 
                 const vIdx = row.findIndex(cell => {
@@ -203,22 +206,21 @@ function processCostsFile(file) {
                 }
             }
 
+            // Fallback manual para Columnas M (12) y T (19) si la búsqueda automática falla pero hay datos
             if (headIdx === -1) {
-                // FALLBACK: Si no encontramos por palabras clave, buscamos la primera fila útil
-                for (let i = 0; i < Math.min(matrix.length, 20); i++) {
+                for (let i = 0; i < Math.min(matrix.length, 50); i++) {
                     const row = matrix[i];
-                    if (row && row.length >= 2) {
-                         // Asumimos que la columna 0 es código y la que tenga números es costo
-                         headIdx = i;
-                         codeColIdx = 0; 
-                         costColIdx = row.findIndex((cell, idx) => idx > 0 && !isNaN(cleanNumber(cell)) && cleanNumber(cell) > 0);
-                         if (costColIdx !== -1) break;
+                    if (row && row[12] && row[19]) {
+                        headIdx = i;
+                        codeColIdx = 12; // Columna M
+                        costColIdx = 19; // Columna T
+                        break;
                     }
                 }
             }
 
-            if (headIdx === -1 || codeColIdx === -1 || costColIdx === -1) {
-                alert("❌ No logré identificar las columnas del presupuesto.\n\nPor favor, asegúrate de que el archivo tenga títulos claros como 'Codigo' y 'Costo'.");
+            if (headIdx === -1) {
+                alert(`❌ No logré identificar las columnas en la hoja: "${firstSheetName}"\n\nAsegúrate de tener títulos como 'Codigo' y 'Costo'.`);
                 return;
             }
 
