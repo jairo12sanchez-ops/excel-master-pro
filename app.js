@@ -44,11 +44,8 @@ async function loadDefaultCosts() {
             
             console.log("Cargando presupuesto maestro detectado en el servidor (Railway)...");
             
-            // 1. Cargarlo como base de datos de costos (Diccionario)
+            // 1. Cargarlo SOLO como base de datos de costos (Diccionario)
             processCostsFile(file, true);
-            
-            // 2. Cargarlo como archivo principal para mostrar en la tabla y habilitar el selector de hojas
-            processFile(file, true);
         }
     } catch (error) {
         console.log("No se encontró presupuesto maestro inicial en el servidor.");
