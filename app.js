@@ -28,19 +28,27 @@ let productCostsHistory = JSON.parse(localStorage.getItem('productCostsHistory')
 
 // Nuevo: Intentar cargar presupuesto maestro desde el servidor
 async function loadDefaultCosts() {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
+    
+    // Si estamos en local (WampServer), no cargamos el presupuesto maestro automáticamente
+    if (isLocal) {
+        console.log("Carga automática de presupuesto maestro desactivada en entorno local.");
+        return;
+    }
+
     try {
         const response = await fetch('presupuesto_maestro.xlsx');
         if (response.ok) {
             const blob = await response.blob();
             const file = new File([blob], "presupuesto_maestro.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
             
-            console.log("Cargando presupuesto maestro detectado en el servidor...");
+            console.log("Cargando presupuesto maestro detectado en el servidor (Railway)...");
             
             // 1. Cargarlo como base de datos de costos (Diccionario)
-            processCostsFile(file);
+            processCostsFile(file, true);
             
             // 2. Cargarlo como archivo principal para mostrar en la tabla y habilitar el selector de hojas
-            processFile(file);
+            processFile(file, true);
         }
     } catch (error) {
         console.log("No se encontró presupuesto maestro inicial en el servidor.");
@@ -110,7 +118,7 @@ configBtn.addEventListener('click', () => {
     columnConfigPanel.classList.toggle('hidden');
 });
 
-function processFile(file) {
+function processFile(file, isAutoLoad = false) {
     const reader = new FileReader();
     reader.onload = (e) => {
         const dataArray = new Uint8Array(e.target.result);
@@ -132,7 +140,7 @@ function processFile(file) {
             sheetSelectorContainer.classList.add('hidden');
         }
 
-        loadSheet(sheetToLoad);
+        loadSheet(sheetToLoad, isAutoLoad);
 
         welcomeScreen.classList.add('hidden');
         tableContainer.classList.remove('hidden');
@@ -141,7 +149,7 @@ function processFile(file) {
     reader.readAsArrayBuffer(file);
 }
 
-function processCostsFile(file) {
+function processCostsFile(file, isAutoLoad = false) {
     // Feedback inmediato
     console.log("Iniciando lectura de:", file.name);
 
@@ -159,7 +167,7 @@ function processCostsFile(file) {
             const tempWb = XLSX.read(dataArray, { type: 'array' });
 
             if (!tempWb || !tempWb.SheetNames || tempWb.SheetNames.length === 0) {
-                alert("❌ El archivo no parece ser un Excel válido o está protegido.");
+                if (!isAutoLoad) alert("❌ El archivo no parece ser un Excel válido o está protegido.");
                 return;
             }
 
@@ -181,7 +189,7 @@ function processCostsFile(file) {
             const matrix = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
             if (!matrix || matrix.length === 0) {
-                alert("⚠️ El archivo o la hoja seleccionada están vacíos.");
+                if (!isAutoLoad) alert("⚠️ El archivo o la hoja seleccionada están vacíos.");
                 return;
             }
 
@@ -226,7 +234,7 @@ function processCostsFile(file) {
             }
 
             if (headIdx === -1) {
-                alert(`❌ No logré identificar las columnas en la hoja: "${firstSheetName}"\n\nAsegúrate de tener títulos como 'Codigo' y 'Costo'.`);
+                if (!isAutoLoad) alert(`❌ No logré identificar las columnas en la hoja: "${firstSheetName}"\n\nAsegúrate de tener títulos como 'Codigo' y 'Costo'.`);
                 return;
             }
 
@@ -267,17 +275,23 @@ function processCostsFile(file) {
                 localStorage.setItem('productCosts', JSON.stringify(productCosts));
                 localStorage.setItem('productCostsHistory', JSON.stringify(productCostsHistory));
                 updateCostsStat();
-                alert(`✅ ¡Éxito! Se han procesado ${count} productos correctamente.`);
+                if (!isAutoLoad) {
+                    alert(`✅ ¡Éxito! Se han procesado ${count} productos correctamente.`);
+                } else {
+                    console.log(`✅ ¡Éxito auto-carga! Se han procesado ${count} productos correctamente del presupuesto maestro.`);
+                }
                 if (data.length > 0) generateCodeSummary();
             } else {
-                alert("❌ Se encontró la cabecera pero no pude leer ningún dato válido debajo.");
+                if (!isAutoLoad) alert("❌ Se encontró la cabecera pero no pude leer ningún dato válido debajo.");
             }
         } catch (error) {
             console.error("Error detallado:", error);
-            alert("Error al abrir el archivo. Asegúrate de que sea un archivo Excel (.xlsx o .xls) válido.");
+            if (!isAutoLoad) alert("Error al abrir el archivo. Asegúrate de que sea un archivo Excel (.xlsx o .xls) válido.");
         }
     };
-    reader.onerror = (err) => alert("Error al leer el archivo del disco.");
+    reader.onerror = (err) => {
+        if (!isAutoLoad) alert("Error al leer el archivo del disco.");
+    };
     reader.readAsArrayBuffer(file);
 }
 
@@ -287,7 +301,7 @@ function updateCostsStat() {
     }
 }
 
-function loadSheet(sheetName) {
+function loadSheet(sheetName, isAutoLoad = false) {
     worksheet = workbook.Sheets[sheetName];
 
     // 1. Leemos como matriz cruda
@@ -359,7 +373,7 @@ function loadSheet(sheetName) {
     if (isBudgetSheet) {
         // En modo automático mostramos éxito solo si el usuario acaba de subir el archivo
         // para dar feedback de que la validación se ejecutó.
-        validateBudget(true);
+        validateBudget(!isAutoLoad);
     }
 }
 
