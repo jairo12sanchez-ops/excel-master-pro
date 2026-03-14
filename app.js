@@ -37,7 +37,7 @@ async function loadDefaultCosts() {
     }
 
     try {
-        const response = await fetch('presupuesto_maestro.xlsx');
+        const response = await fetch('presupuesto_maestro.xlsx?t=' + new Date().getTime(), { cache: 'no-store' });
         if (response.ok) {
             const blob = await response.blob();
             const file = new File([blob], "presupuesto_maestro.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
